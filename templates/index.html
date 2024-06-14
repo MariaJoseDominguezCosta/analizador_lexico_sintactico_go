@@ -106,7 +106,18 @@ background: radial-gradient(circle, rgba(175,174,238,1) 0%, rgba(154,233,148,1) 
 
                 </div>
             </details>
-
+            <details class="card mb-2">
+                <summary class="card-header " style="background-color: #6F2CF4; list-style: none;">
+                    <h5>ANALISIS SEMANTICO</h5>
+                </summary>
+                <div class="card-body">
+                    <p class="card-text">
+                        {% for elemento in mensaje3 %}
+                            <h6>{{ elemento }}</h6>
+                        {% endfor %}
+                    </p>
+                </div>
+            </details>
         </div>
 
     </div>

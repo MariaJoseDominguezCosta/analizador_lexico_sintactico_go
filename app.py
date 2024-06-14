@@ -3,6 +3,7 @@
 from flask import Flask, request, render_template
 from lexer import tokenize
 from parser_1 import parse
+from semantico import errores
 
 app = Flask(__name__)
 
@@ -14,7 +15,7 @@ def index():
         code = request.form['code']
         result_lex = tokenize(code)
         result_syntax = parse(code)
-    return render_template('index.html', tokens=result_lex, syntax=result_syntax)
+    return render_template('index.html', tokens=result_lex, syntax=result_syntax, mensaje3=errores)
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -48,3 +48,70 @@ def verificar_tipos(op1, operador, op2):
         # Restringir comparaciones de orden para otros tipos
         errores.append(f"Error: No se pueden comparar variables de tipos diferentes ({tipo_op1} y {tipo_op2}) usando '{operador}'")
         return False
+    
+
+# Definimos una estructura de entorno para mantener las declaraciones de variables y funciones
+
+def declare_variable(variable_inicializada, name):
+    if name in variable_inicializada:
+        if f"Variable '{name}' is already declared" not in errores:
+            errores.append(f"Variable '{name}' is already declared.")
+
+def lookup_variable(variables, name):
+    if name not in variables:
+        errores.append(f"Variable '{name}' is not declared.")
+        
+def declare_function(funciones, name):
+    if name in funciones:
+        errores.append(f"Function '{name}' is already declared.")
+        
+
+def lookup_function(funciones, name):
+    if name not in funciones:
+        errores.append(f"Function '{name}' is not declared.")
+
+def declare_type(tipos, name):
+    if name in tipos:
+        errores.append(f"Type '{name}' is already declared.")
+
+def lookup_type(tipos, name):
+    if name not in tipos:
+        errores.append(f"Type '{name}' is not declared.")
+        
+def declare_import(importaciones, name):
+    if name in importaciones:
+        errores.append(f"Import '{name}' is already declared.")
+        
+def lookup_import(importaciones, name):
+    if name not in importaciones:
+        errores.append(f"Import '{name}' is not declared.")
+
+# Definimos una función para verificar la asignación de tipos
+def verificar_asignacion_tipos(variables_inicializadas, name, var_type, value):
+    if name in variables_inicializadas:
+        if variables_inicializadas[name]!= var_type:
+            errores.append(f"Variable '{name}' redeclarada con tipo diferente.")
+    else:
+        variables_inicializadas[name] = var_type
+
+    return variables_inicializadas
+
+# Definimos una función para verificar la asignación de tipos a funciones
+def verificar_asignacion_tipos_funciones(funciones, name, return_type, param_types):
+    if name in funciones:
+        if funciones[name]!= (return_type, param_types):
+            errores.append(f"Function '{name}' redeclarada con tipo diferente.")
+    else:
+        funciones[name] = (return_type, param_types)
+
+    return funciones
+
+# Definimos una función para verificar la asignación de tipos a variables
+def verificar_asignacion_tipos_variables(variables, name, var_type):
+    if name in variables:
+        if variables[name]!= var_type:
+            errores.append(f"Variable '{name}' redeclarada con tipo diferente.")
+    else:
+        variables[name] = var_type
+
+    return variables

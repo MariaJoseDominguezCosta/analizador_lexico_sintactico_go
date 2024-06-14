@@ -2,6 +2,8 @@ import ply.yacc as yacc
 from semantico import *
 
 variables_inicializadas = {}
+importaciones={}
+funciones={}
 
 # Definición de precedencia para los operadores
 precedence = (
@@ -21,19 +23,19 @@ def p_program(p):
 
 # Declaración de paquete
 def p_package_declaration(p):
-    '''package_declaration : PACKAGE IDENTIFIER'''
-    p[0] = p[2]
+    '''package_declaration : PACKAGE MAIN'''
+    p[0] = ('package', p[2])
 
 
 # Declaración de importación
 def p_import_declaration(p):
-    '''import_declaration : IMPORT STRING_LIT
+    '''import_declaration : IMPORT import_spec
     | IMPORT LPAREN import_spec_list RPAREN'''
     if len(p) == 4:
         p[0] = p[3]
+        
     else:
-        p[0] = ('import_declaration', p[2])
-
+        p[0] = p[2]
 
 # Lista de especificaciones de importación
 def p_import_spec_list(p):
@@ -49,15 +51,24 @@ def p_import_spec_list(p):
 def p_import_spec(p):
     '''import_spec : STRING_LIT
     | IDENTIFIER STRING_LIT'''
-    p[0] = p[1]
+    if len(p)==3:
+        nombre = p[2]
+    else:
+        nombre = p[1]
+    importaciones[nombre] = True
+    declare_import(importaciones, nombre)
+    lookup_import(importaciones, nombre)
+    p[0] = nombre
 
 
 # Declaración de función
 def p_function_declaration(p):
     '''function_declaration : FUNC IDENTIFIER function_signature function_body'''
     function_name = p[2]
-    function_body = p[4]
-    p[0] = (function_name, function_body)
+    funciones[function_name] = True
+    declare_function(funciones, function_name)
+    lookup_function(funciones, function_name)
+    p[0] = ('function', function_name, p[4])
 
 
 # Firma de la función
@@ -76,13 +87,15 @@ def p_parameter_list(p):
     if len(p) == 2:
         p[0] = p[1]
     else:
-        p[0] = p[1] + p[3]
+        p[0] = p[1] + [p[3]]
 
 
 # Declaración de parámetro
 def p_parameter_declaration(p):
     '''parameter_declaration : IDENTIFIER type'''
-    p[0] = p[2]
+    
+    p[0] = (p[1], p[2])
+    verificar_asignacion_tipos_variables(variables_inicializadas, p[1], p[2])
 
 
 # Tipo de dato
@@ -96,13 +109,12 @@ def p_type(p):
 # Tipo de puntero
 def p_pointer_type(p):
     '''pointer_type : TIMES type'''
-    p[0]= p[2]
-
+    p[0] = ('pointer', p[2])
 
 # Tipo de arreglo
 def p_array_type(p):
     '''array_type : LBRACK expression RBRACK type'''
-    p[0]= p[4]
+    p[0] = ('array', p[2], p[4])
 
 
 # Cuerpo de la función
@@ -118,7 +130,7 @@ def p_block(p):
     if len(p) == 4:
         p[0] = p[2]
     else:
-        p[0] = None
+        p[0] = []
 
 
 # Lista de declaraciones
@@ -133,7 +145,8 @@ def p_statement_list(p):
 
 # Declaración
 def p_statement(p):
-    '''statement : package_declaration import_declaration
+    '''statement : package_declaration 
+    | import_declaration
     | const_declaration
     | var_declaration
     | simple_statement
@@ -142,6 +155,7 @@ def p_statement(p):
     | for_statement
     | function_declaration
     | print_statement
+    | empty_line
     '''
     p[0] = p[1]
 
@@ -149,67 +163,70 @@ def p_statement(p):
 # Declaración simple
 def p_simple_statement(p):
     '''simple_statement : expression'''
-    p[0] = ('simple_statement', p[1])
+    p[0] = ( p[1])
 
 
 # Declaración de retorno
 def p_return_statement(p):
     '''return_statement : RETURN expression
     | RETURN'''
-    if len(p) == 4:
-        p[0] = ('return_statement', p[2])
+    if len(p) == 3:
+        p[0] = ('return', p[2])
     else:
-        p[0] = ('return_statement')
+        p[0] = ('return', None)
+    
 
 
 # Declaración de if
 def p_if_statement(p):
     '''if_statement : IF expression LBRACE statement_list RBRACE
     | IF expression LBRACE statement_list RBRACE ELSE LBRACE statement_list RBRACE'''
-    if p[2]:
-        p[0] = 'La condición es verdadera'
+    if len(p) == 6:
+        p[0] = ('if', p[2], p[4], None)
     else:
-        p[0] = 'La condición es falsa'
+        p[0] = ('if', p[2], p[4], p[8])
 
 
 
 # Declaración de for
 def p_for_statement(p):
     '''for_statement : FOR expression LBRACE statement_list RBRACE'''
-    p[0] = p[2]
+    p[0] = ('for', p[2], p[4])
 
 
 # Declaración de impresión
 def p_print_statement(p):
     '''print_statement : FMT DOT PRINTLN LPAREN STRING_LIT RPAREN
     | PRINTLN LPAREN STRING_LIT RPAREN'''
-    if len(p) == 6:
-        print_args = [p[3]]
-        formatted_string = ' '.join(map(str, print_args))
-        print(formatted_string)
-        p[0] = formatted_string
-    else:
+    if len(p) == 7:
         print_args = [p[5]]
-        formatted_string = ' '.join(map(str, print_args))
-        print(formatted_string)
-        p[0] = formatted_string
+    else:
+        print_args = [p[3]]
+    formatted_string = ' '.join(map(str, print_args))
+    print(formatted_string)
+    p[0] = formatted_string
 
 # Declaración de constante
 def p_const_declaration(p):
-    '''const_declaration : CONST IDENTIFIER ASSIGN expression
-    | CONST LPAREN const_spec_list RPAREN'''
-    if len(p)==6:
-        p[0] = p[4]
-    else:
-        p[0] = p[3]
+    '''const_declaration : CONST IDENTIFIER ASSIGN expression'''
+    p[0] = p[2]
+    nombres[p[0]] = p[4]
+    variables_inicializadas[p[0]] = True
+    verificar_asignacion_tipos_variables(variables_inicializadas, p[0], p[4])
 
 
 # Especificación de constante
 def p_const_spec(p):
     '''const_spec : IDENTIFIER ASSIGN expression
     | IDENTIFIER ASSIGN expression const_spec'''
-    p[0] = p[3]
-
+    nombres[p[1]] = p[3]
+    variables_inicializadas[p[1]] = True
+    verificar_asignacion_tipos_variables(variables_inicializadas, p[1], p[3])
+    if len(p) == 4:
+        p[0] = (p[1], p[3])
+    else:
+        p[0] = (p[1], p[3]) + p[4]
+        
 
 # Lista de especificaciones de constante
 def p_const_spec_list(p):
@@ -227,21 +244,24 @@ def p_var_declaration(p):
     | VAR LPAREN var_spec_list RPAREN'''
     if len(p) == 3:
         p[0] = p[2]
-        if isinstance(p[2], tuple):
-            nombre, valor = p[2]
-            nombres[nombre] = valor
-            variables_inicializadas[nombre] = True
-            print(f'Variable {nombre} inicializada')
+            
     else:
         p[0] = p[3]
-
+    nombre, valor = p[0]
+    nombres[nombre] = valor
+    variables_inicializadas[nombre] = True
+    
+    verificar_asignacion_tipos_variables(variables_inicializadas,nombre, valor)
 
 # Especificación de variable
 def p_var_spec(p):
     '''var_spec : IDENTIFIER type
     | IDENTIFIER type ASSIGN expression
     | IDENTIFIER type ASSIGN expression var_spec'''
-    p[0] = p[2]
+    variable_name = p[1]
+    verificar_variable_inicializada(variables_inicializadas, variable_name)
+    p[0]= nombres.get(variable_name,None)
+    
 
 
 # Lista de especificaciones de variable
@@ -249,7 +269,10 @@ def p_var_spec_list(p):
     '''var_spec_list : var_spec
     | var_spec_list var_spec
     '''
-    p[0] = p[1]
+    if len(p) == 2:
+        p[0] = [p[1]]
+    else:
+        p[0] = p[1] + [p[2]]
 
 # Expresión
 # Expresión atómica
@@ -387,7 +410,7 @@ def parse(data):
     error_message = None  # Inicializa la variable error_message
     resultado = None  # Inicializa la variable resultado
     try:
-        resultado = parser.parse(data, tracking=True)
+        resultado = parser.parse(data)
         if resultado is not None:
             return str(resultado) + ' ,Sintaxis correcta'
         else:

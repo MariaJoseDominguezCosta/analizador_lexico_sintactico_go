@@ -3,6 +3,7 @@ import ply.lex as lex
 # Lista de tokens
 tokens = (
     'IDENTIFIER',
+    'MAIN',
     'PLUS',
     'MINUS',
     'TIMES',
@@ -155,7 +156,7 @@ def t_ID(t):
         'true': 'TRUE',
         'false': 'FALSE',
         'nil': 'NIL',
-        
+        'main': 'MAIN'
         # ... más palabras reservadas pueden ser añadidas aquí
     }
     t.type = palabras_reservadas.get(t.value, 'IDENTIFIER')  # Si no es palabra reservada, es un ID
